@@ -45,15 +45,16 @@ class OffsetPaginator(BasePaginator):
     """
     page_type = pages.OffsetPage
 
-    def get_page(self, page):
+    def get_page(self, page, eager=True):
         offset, limit = self.per_page * (page - 1), self.per_page
-        return self.page_type(self, page, self._fetch(offset, limit))
+        return self.page_type(self, page, self._fetch(offset, limit, eager=eager))
 
-    def _fetch(self, offset, limit):
+    def _fetch(self, offset, limit, eager=True):
         offset += (self.cursor._offset or 0)
         if self.cursor._limit:
             limit = min(limit, self.cursor._limit - offset)
-        return self.cursor.offset(offset).limit(limit).all()
+        query = self.cursor.offset(offset).limit(limit)
+        return query.all() if eager else query
 
 class SeekPaginator(BasePaginator):
     """Paginator using keyset pagination for performance on large result sets.
@@ -68,11 +69,11 @@ class SeekPaginator(BasePaginator):
         self.sort_direction = sort_direction
         super(SeekPaginator, self).__init__(cursor, per_page, count=count)
 
-    def get_page(self, last_index=None, sort_index=None):
+    def get_page(self, last_index=None, sort_index=None, eager=True):
         limit = self.per_page
-        return self.page_type(self, self._fetch(last_index, sort_index, limit))
+        return self.page_type(self, self._fetch(last_index, sort_index, limit, eager=eager))
 
-    def _fetch(self, last_index, sort_index=None, limit=None):
+    def _fetch(self, last_index, sort_index=None, limit=None, eager=True):
         cursor = self.cursor
         direction = self.sort_direction or sa.asc
         lhs, rhs = (), ()
@@ -82,14 +83,13 @@ class SeekPaginator(BasePaginator):
         if last_index is not None:
             lhs += (self.index_column, )
             rhs += (last_index, )
-        if any(rhs):
+        lhs = sa.tuple_(*lhs)
+        rhs = sa.tuple_(*rhs)
+        if rhs.clauses:
             filter = lhs > rhs if direction == sa.asc else lhs < rhs
             cursor = cursor.filter(filter)
-        return cursor.order_by(
-            direction(self.index_column)
-        ).limit(
-            limit
-        ).all()
+        query = cursor.order_by(direction(self.index_column)).limit(limit)
+        return query.all() if eager else query
 
     def _get_index_values(self, result):
         """Get index values from last result, to be used in seeking to the next
