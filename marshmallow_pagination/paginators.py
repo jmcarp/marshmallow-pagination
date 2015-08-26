@@ -6,7 +6,15 @@ import math
 import six
 import sqlalchemy as sa
 
+from marshmallow_sqlalchemy.convert import ModelConverter
+
 from marshmallow_pagination import pages
+
+converter = ModelConverter()
+def convert_value(row, attr):
+    field = converter._get_field_class_for_property(attr.property)
+    value = getattr(row, attr.key)
+    return field()._serialize(value, None, None)
 
 class BasePaginator(six.with_metaclass(abc.ABCMeta, object)):
 
@@ -24,7 +32,9 @@ class BasePaginator(six.with_metaclass(abc.ABCMeta, object)):
 
     @property
     def pages(self):
-        return int(math.ceil(self.count / self.per_page))
+        if self.per_page:
+            return int(math.ceil(self.count / self.per_page))
+        return 0
 
     @abc.abstractproperty
     def get_page(self):
@@ -85,8 +95,8 @@ class SeekPaginator(BasePaginator):
         """Get index values from last result, to be used in seeking to the next
         page. Optionally include sort values, if any.
         """
-        ret = {'index': getattr(result, self.index_column.key)}
+        ret = {'last_index': convert_value(result, self.index_column)}
         if self.sort_column:
-            key = self.sort_column.key
-            ret[key] = getattr(result, self.sort_column.key)
+            key = 'last_{0}'.format(self.sort_column[0].key)
+            ret[key] = convert_value(result, self.sort_column[0])
         return ret
