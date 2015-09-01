@@ -14,22 +14,16 @@ class PageMeta(ma.schema.SchemaMeta):
     """Metaclass for `PageSchema` that creates a `Nested` field based on the
     options configured in `OPTIONS_CLASS`.
     """
-
     @classmethod
     def get_declared_fields(mcs, klass, *args, **kwargs):
-        declared_fields = kwargs.get('dict_class', dict)()
         opts = klass.opts
-        declared_fields[opts.results_field_name] = ma.fields.Nested(
+        fields = super(PageMeta, mcs).get_declared_fields(klass, *args, **kwargs)
+        fields[opts.results_field_name] = ma.fields.Nested(
             opts.results_schema_class,
-            attribute='results',
             many=True,
             **opts.results_schema_options
         )
-        base_fields = super(PageMeta, mcs).get_declared_fields(
-            klass, *args, **kwargs
-        )
-        declared_fields.update(base_fields)
-        return declared_fields
+        return fields
 
 class BaseInfoSchema(ma.Schema):
     count = ma.fields.Integer()
