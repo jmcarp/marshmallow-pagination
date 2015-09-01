@@ -62,11 +62,9 @@ class SeekPaginator(BasePaginator):
     """
     page_type = pages.SeekPage
 
-    def __init__(self, cursor, per_page, index_column, sort_column=None,
-                 sort_direction=None, count=None):
+    def __init__(self, cursor, per_page, index_column, sort_column=None, count=None):
         self.index_column = index_column
         self.sort_column = sort_column
-        self.sort_direction = sort_direction
         super(SeekPaginator, self).__init__(cursor, per_page, count=count)
 
     def get_page(self, last_index=None, sort_index=None, eager=True):
@@ -75,7 +73,7 @@ class SeekPaginator(BasePaginator):
 
     def _fetch(self, last_index, sort_index=None, limit=None, eager=True):
         cursor = self.cursor
-        direction = self.sort_direction or sa.asc
+        direction = self.sort_column[1] if self.sort_column else sa.asc
         lhs, rhs = (), ()
         if sort_index is not None:
             lhs += (self.sort_column, )
