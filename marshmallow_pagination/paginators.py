@@ -20,8 +20,8 @@ class BasePaginator(six.with_metaclass(abc.ABCMeta, object)):
 
     def __init__(self, cursor, per_page, count=None):
         self.cursor = cursor
-        self.per_page = per_page
         self.count = count or self._count()
+        self.per_page = per_page or self.count
 
     def _count(self):
         return self.cursor.count()
