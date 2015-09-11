@@ -76,7 +76,7 @@ class SeekPaginator(BasePaginator):
         direction = self.sort_column[1] if self.sort_column else sa.asc
         lhs, rhs = (), ()
         if sort_index is not None:
-            lhs += (self.sort_column, )
+            lhs += (self.sort_column[0], )
             rhs += (sort_index, )
         if last_index is not None:
             lhs += (self.index_column, )
